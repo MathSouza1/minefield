@@ -1,11 +1,10 @@
-package com.matheuscardoso.minefield;
+package com.matheuscardoso.minefield.model;
 
-import com.matheuscardoso.minefield.model.Field;
+import com.matheuscardoso.minefield.exceptions.ExplosionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class FieldTest {
     private Field field;
@@ -34,5 +33,30 @@ public class FieldTest {
         Field neighbor = new Field(1, 1);
         boolean result = field.addNeighbor(neighbor);
         assertFalse(result);
+    }
+
+    @Test
+    void testIsFlagged() {
+        field.changeFlag();
+        assertTrue(field.fieldIsFlagged());
+    }
+
+    @Test
+    void testOpenFieldSuccessfully() {
+        assertTrue(field.openField());
+    }
+
+    @Test
+    void testOpenFieldFalse() {
+        field.changeFlag();
+        assertFalse(field.openField());
+    }
+
+    @Test
+    void testOpenFieldExplosionException() {
+        field.mineTheField();
+        assertThrows(ExplosionException.class, () -> {
+            field.openField();
+        });
     }
 }

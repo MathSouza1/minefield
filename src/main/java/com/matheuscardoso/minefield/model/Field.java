@@ -1,5 +1,7 @@
 package com.matheuscardoso.minefield.model;
 
+import com.matheuscardoso.minefield.exceptions.ExplosionException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,11 +10,11 @@ public class Field {
     private static final int TWO = 2;
     private final int row;
     private final int column;
-    boolean differentLine, differentColumn, diagonal;
+    boolean differentRow, differentColumn, diagonal;
     int deltaLine, deltaColumn, deltaGeneral, mines;
-    private boolean open = false;
-    private boolean mined = false;
-    private boolean flagged = false;
+    private boolean openField = false;
+    private boolean minedField = false;
+    private boolean flaggedField = false;
     private List<Field> neighbors = new ArrayList<>();
 
     public Field(int line, int column) {
@@ -20,10 +22,10 @@ public class Field {
         this.column = column;
     }
 
-    public boolean addNeighbor(Field neighbor) {
-        differentLine = row != neighbor.row;
+    boolean addNeighbor(Field neighbor) {
+        differentRow = row != neighbor.row;
         differentColumn = column != neighbor.column;
-        diagonal = differentLine && differentColumn;
+        diagonal = differentRow && differentColumn;
         deltaLine = Math.abs(row - neighbor.row);
         deltaColumn = Math.abs(column - neighbor.column);
         deltaGeneral = deltaColumn + deltaLine;
@@ -36,6 +38,46 @@ public class Field {
             return true;
         }
         return false;
+    }
+
+    void changeFlag() {
+        if (theFieldIsOpen()) {
+            flaggedField = !flaggedField;
+        }
+    }
+
+    boolean openField() {
+        if (theFieldIsOpenAndIsFlagged()) {
+            openField = true;
+            if (minedField) {
+                throw new ExplosionException();
+            }
+            if (neighborhoodIsSafe()) {
+                neighbors.forEach(Field::openField);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private boolean neighborhoodIsSafe() {
+        return neighbors.stream().noneMatch(neighbor -> neighbor.minedField);
+    }
+
+    void mineTheField() {
+        minedField = true;
+    }
+
+    public boolean fieldIsFlagged() {
+        return flaggedField;
+    }
+
+    private boolean theFieldIsOpenAndIsFlagged() {
+        return !openField && !flaggedField;
+    }
+
+    private boolean theFieldIsOpen() {
+        return !openField;
     }
 
     private boolean isNeighborOfTheSameRowOrColumn() {
