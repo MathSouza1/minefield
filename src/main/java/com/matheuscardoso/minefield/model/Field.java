@@ -68,12 +68,15 @@ public class Field {
         minedField = true;
     }
 
-    public boolean fieldIsFlagged() {
+    boolean fieldIsMined() {
+        return minedField;
+    }
+    boolean fieldIsFlagged() {
         return flaggedField;
     }
 
     private boolean theFieldIsOpenAndIsFlagged() {
-        return !openField && !flaggedField;
+        return theFieldIsOpen() && !fieldIsFlagged();
     }
 
     private boolean theFieldIsOpen() {

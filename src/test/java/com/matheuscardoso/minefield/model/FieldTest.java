@@ -43,6 +43,7 @@ public class FieldTest {
 
     @Test
     void testOpenFieldSuccessfully() {
+        field.fieldIsMined();
         assertTrue(field.openField());
     }
 
