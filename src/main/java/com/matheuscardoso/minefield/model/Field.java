@@ -1,6 +1,7 @@
 package com.matheuscardoso.minefield.model;
 
 import com.matheuscardoso.minefield.exceptions.ExplosionException;
+import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,7 +9,9 @@ import java.util.List;
 public class Field {
     private static final int ONE = 1;
     private static final int TWO = 2;
+    @Getter
     private final int row;
+    @Getter
     private final int column;
     boolean differentRow, differentColumn, diagonal;
     int deltaLine, deltaColumn, deltaGeneral, mines;
@@ -41,13 +44,13 @@ public class Field {
     }
 
     void changeFlag() {
-        if (theFieldIsOpen()) {
+        if (isClosed()) {
             flaggedField = !flaggedField;
         }
     }
 
     boolean openField() {
-        if (theFieldIsOpenAndIsFlagged()) {
+        if (isOpenAndIsFlagged()) {
             openField = true;
             if (minedField) {
                 throw new ExplosionException();
@@ -64,23 +67,61 @@ public class Field {
         return neighbors.stream().noneMatch(neighbor -> neighbor.minedField);
     }
 
+    boolean goalAchieved() {
+        boolean unraveled = !minedField && openField;
+        boolean protect = minedField && flaggedField;
+        return unraveled || protect;
+    }
+
+    long minesInTheNeighborhood() {
+        return neighbors.stream().filter(field -> field.minedField).count();
+    }
+
+    void restart() {
+        openField = false;
+        minedField = false;
+        flaggedField = false;
+    }
+
+    public String toString() {
+        if (flaggedField) {
+            return "x";
+        } else if (openField && minedField) {
+            return "*";
+        } else if (openField && minesInTheNeighborhood() > 0) {
+            return Long.toString(minesInTheNeighborhood());
+        } else if (openField) {
+            return " ";
+        }
+        return "?";
+    }
+
     void mineTheField() {
         minedField = true;
     }
 
-    boolean fieldIsMined() {
+    boolean isMined() {
         return minedField;
     }
-    boolean fieldIsFlagged() {
+
+    boolean isFlagged() {
         return flaggedField;
     }
 
-    private boolean theFieldIsOpenAndIsFlagged() {
-        return theFieldIsOpen() && !fieldIsFlagged();
+    void setOpen(boolean openField) {
+        this.openField = openField;
     }
 
-    private boolean theFieldIsOpen() {
-        return !openField;
+    boolean isOpen() {
+        return openField;
+    }
+
+    boolean isClosed() {
+        return !isOpen();
+    }
+
+    private boolean isOpenAndIsFlagged() {
+        return isClosed() && !isFlagged();
     }
 
     private boolean isNeighborOfTheSameRowOrColumn() {
