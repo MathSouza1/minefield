@@ -21,7 +21,7 @@ public class Board {
 
     private void drawMines() {
         long armedMines = 0;
-        Predicate<Field> mined = Field::fieldIsMined;
+        Predicate<Field> mined = Field::isMined;
         do {
             int randomNumber = (int) (Math.random() * fields.size());
             fields.get(randomNumber).mineTheField();
