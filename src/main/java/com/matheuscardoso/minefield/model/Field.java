@@ -1,7 +1,9 @@
 package com.matheuscardoso.minefield.model;
 
-import com.matheuscardoso.minefield.exceptions.ExplosionException;
+import com.matheuscardoso.minefield.enumerators.FieldEvent;
+import com.matheuscardoso.minefield.observers.FieldObserver;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,22 +12,34 @@ public class Field {
     private static final int ONE = 1;
     private static final int TWO = 2;
     @Getter
-    private final int row;
+    private int row;
     @Getter
-    private final int column;
+    private int column;
     boolean differentRow, differentColumn, diagonal;
-    int deltaLine, deltaColumn, deltaGeneral, mines;
+    int deltaLine;
+    int deltaColumn;
+    int deltaGeneral;
     private boolean openField = false;
     private boolean minedField = false;
+    @Setter
     private boolean flaggedField = false;
     private List<Field> neighbors = new ArrayList<>();
+    private List<FieldObserver> observers = new ArrayList<>();
 
     public Field(int line, int column) {
         this.row = line;
         this.column = column;
     }
 
-    boolean addNeighbor(Field neighbor) {
+    public void saveObserver(FieldObserver fieldObserver) {
+        observers.add(fieldObserver);
+    }
+
+    private void notifyObservers(FieldEvent fieldEvent) {
+        observers.forEach(observer -> observer.eventHappened(this, fieldEvent));
+    }
+
+    public boolean addNeighbor(Field neighbor) {
         differentRow = row != neighbor.row;
         differentColumn = column != neighbor.column;
         diagonal = differentRow && differentColumn;
@@ -43,18 +57,24 @@ public class Field {
         return false;
     }
 
-    void changeFlag() {
+    public void changeFlag() {
         if (isClosed()) {
             flaggedField = !flaggedField;
+            if (flaggedField) {
+                notifyObservers(FieldEvent.FLAGGED);
+            } else {
+                notifyObservers(FieldEvent.UNFLAGGED);
+            }
         }
     }
 
-    boolean openField() {
+    public boolean openField() {
         if (isOpenAndIsFlagged()) {
-            openField = true;
             if (minedField) {
-                throw new ExplosionException();
+                notifyObservers(FieldEvent.EXPLODE);
+                return true;
             }
+            setOpen(true);
             if (neighborhoodIsSafe()) {
                 neighbors.forEach(Field::openField);
             }
@@ -63,7 +83,7 @@ public class Field {
         return false;
     }
 
-    private boolean neighborhoodIsSafe() {
+    public boolean neighborhoodIsSafe() {
         return neighbors.stream().noneMatch(neighbor -> neighbor.minedField);
     }
 
@@ -73,34 +93,22 @@ public class Field {
         return unraveled || protect;
     }
 
-    long minesInTheNeighborhood() {
-        return neighbors.stream().filter(field -> field.minedField).count();
+    public int minesInTheNeighborhood() {
+        return (int) neighbors.stream().filter(field -> field.minedField).count();
     }
 
     void restart() {
         openField = false;
         minedField = false;
         flaggedField = false;
+        notifyObservers(FieldEvent.RESTART);
     }
 
-    public String toString() {
-        if (flaggedField) {
-            return "x";
-        } else if (openField && minedField) {
-            return "*";
-        } else if (openField && minesInTheNeighborhood() > 0) {
-            return Long.toString(minesInTheNeighborhood());
-        } else if (openField) {
-            return " ";
-        }
-        return "?";
-    }
-
-    void mineTheField() {
+    public void mineTheField() {
         minedField = true;
     }
 
-    boolean isMined() {
+    public boolean isMined() {
         return minedField;
     }
 
@@ -110,6 +118,9 @@ public class Field {
 
     void setOpen(boolean openField) {
         this.openField = openField;
+        if (openField) {
+            notifyObservers(FieldEvent.OPEN);
+        }
     }
 
     boolean isOpen() {

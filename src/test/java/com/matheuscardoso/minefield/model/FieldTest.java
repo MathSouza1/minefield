@@ -1,13 +1,13 @@
 package com.matheuscardoso.minefield.model;
 
-import com.matheuscardoso.minefield.exceptions.ExplosionException;
-import org.junit.jupiter.api.Assertions;
+import com.matheuscardoso.minefield.observers.FieldObserver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
-import org.mockito.Mockito;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 
 public class FieldTest {
     @InjectMocks
@@ -51,17 +51,15 @@ public class FieldTest {
     }
 
     @Test
-    void testOpenFieldFalse() {
-        field.changeFlag();
-        assertFalse(field.openField());
+    void testOpenFieldExplode() {
+        field.mineTheField();
+        assertTrue(field.openField());
     }
 
     @Test
-    void testOpenFieldExplosionException() {
-        field.mineTheField();
-        assertThrows(ExplosionException.class, () -> {
-            field.openField();
-        });
+    void testOpenFieldFalse() {
+        field.changeFlag();
+        assertFalse(field.openField());
     }
 
     @Test
@@ -84,6 +82,19 @@ public class FieldTest {
     @Test
     void testRestart() {
         field.restart();
+    }
+
+
+    @Test
+    void changeFlagUnfflaged() {
+        boolean valid = true;
+        try {
+            field.setFlaggedField(true);
+            field.changeFlag();
+        } catch (Exception e) {
+            valid = false;
+        }
+        assertTrue(valid);
     }
 
     @Test
@@ -134,7 +145,6 @@ public class FieldTest {
         assertTrue(valid);
     }
 
-
     @Test
     void testGetter() {
         boolean valid = true;
@@ -146,4 +156,17 @@ public class FieldTest {
         }
         assertTrue(valid);
     }
+
+    @Test
+    void testSaveObserver() {
+        boolean valid = true;
+        try {
+            FieldObserver fieldObserver = null;
+            field.saveObserver(fieldObserver);
+        } catch (Exception e) {
+            valid = false;
+        }
+        assertTrue(valid);
+    }
+    
 }
