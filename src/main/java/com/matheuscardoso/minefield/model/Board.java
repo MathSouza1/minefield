@@ -1,16 +1,24 @@
 package com.matheuscardoso.minefield.model;
 
-import com.matheuscardoso.minefield.exceptions.ExplosionException;
+import com.matheuscardoso.minefield.enumerators.FieldEvent;
+import com.matheuscardoso.minefield.observers.FieldObserver;
+import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-public class Board {
+public class Board implements FieldObserver {
+
+    @Getter
     private int rows;
+
+    @Getter
     private int columns;
     private int mines;
     private final List<Field> fields = new ArrayList<>();
+    private final List<Consumer<EventResult>> observers = new ArrayList<>();
 
     public Board(int rows, int columns, int mines) {
         this.rows = rows;
@@ -42,7 +50,9 @@ public class Board {
     private void generateFields() {
         for (int row = 0; row < rows; row++) {
             for (int column = 0; column < columns; column++) {
-                fields.add(new Field(row, column));
+                Field field = new Field(row, column);
+                field.saveObserver(this);
+                fields.add(field);
             }
         }
     }
@@ -84,21 +94,45 @@ public class Board {
     }
 
     public void open(Integer row, Integer column) {
-        try {
-            fields.parallelStream()
-                    .filter(field -> field.getRow() == row && field.getColumn() == column)
-                    .findFirst()
-                    .ifPresent(field -> field.openField());
-        } catch (ExplosionException e) {
-            fields.forEach(field -> field.setOpen(true));
-            throw e;
-        }
+        fields.parallelStream()
+                .filter(field -> field.getRow() == row && field.getColumn() == column)
+                .findFirst()
+                .ifPresent(Field::openField);
     }
 
     public void toggleMarking(Integer row, Integer column) {
         fields.parallelStream()
                 .filter(field -> field.getRow() == row && field.getColumn() == column)
                 .findFirst()
-                .ifPresent(field -> field.changeFlag());
+                .ifPresent(Field::changeFlag);
+    }
+
+    public void forEachField(Consumer<Field> function) {
+        fields.forEach(function);
+    }
+
+    public void registerObserver(Consumer<EventResult> observer) {
+        observers.add(observer);
+    }
+
+    public void notifyObservers(boolean result) {
+        observers.forEach(observer -> observer.accept(new EventResult(result)));
+    }
+
+    @Override
+    public void eventHappened(Field field, FieldEvent fieldEvent) {
+        if (fieldEvent == FieldEvent.EXPLODE) {
+            showMines();
+            notifyObservers(false);
+        } else if (goalAchieved()) {
+            notifyObservers(true);
+        }
+    }
+
+    private void showMines() {
+        fields.stream()
+                .filter(Field::isMined)
+                .filter(field -> !field.isFlagged())
+                .forEach(field -> field.setOpen(true));
     }
 }
